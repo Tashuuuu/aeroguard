@@ -1,0 +1,4 @@
+workspace/raw
+.git
+__pycache__
+*.nc
