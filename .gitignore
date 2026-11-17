@@ -1,6 +1,9 @@
-data/
-artifacts/
-.venv/
+workspace/
 __pycache__/
 *.pyc
-.wandb/
+.venv/
+.env
+*.nc
+wandb/
+.pytest_cache/
+.DS_Store
