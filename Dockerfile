@@ -1,7 +1,7 @@
 FROM python:3.10-slim
 WORKDIR /app
 COPY requirements-serve.txt .
-RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu \
+RUN pip install --no-cache-dir torch --extra-index-url https://download.pytorch.org/whl/cpu \
  && pip install --no-cache-dir -r requirements-serve.txt
 COPY . .
 ENV AEROGUARD_ROOT=/app/workspace AEROGUARD_MODE=hourly
