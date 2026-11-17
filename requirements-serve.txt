@@ -1,0 +1,11 @@
+numpy
+pandas
+pyarrow
+scikit-learn
+xarray
+requests
+torch_geometric
+fastapi
+uvicorn[standard]
+streamlit
+plotly
