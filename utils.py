@@ -11,8 +11,8 @@ def http_get(url, headers=None, params=None, tries=6):
     for k in range(tries):
         try:
             r = requests.get(url, headers=headers, params=params, timeout=120)
-            if r.status_code == 429:
-                time.sleep(float(r.headers.get("x-ratelimit-reset", 30)) + 1)
+            if r.status_code in (408, 429):
+                time.sleep(float(r.headers.get("x-ratelimit-reset", 30 if r.status_code == 429 else 5)) + 1)
                 continue
             if r.status_code >= 500:
                 time.sleep(2.0 * (k + 1))
