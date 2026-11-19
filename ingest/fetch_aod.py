@@ -1,156 +1,70 @@
-"""Satellite AOD (MODIS MAIAC MCD19A2, 1 km, Optical_Depth_055)
-sampled at every station via NASA AppEEARS."""
-
-import time
-import requests
+"""Satellite AOD (MODIS MAIAC MCD19A2, 1 km, Optical_Depth_055) sampled at every station via Google Earth Engine."""
+import os, sys
 import pandas as pd
-from requests.auth import HTTPBasicAuth
-from config import *
+import ee
+from config import *   # needs PROC, RAW, START, END
 
-API = "https://appeears.earthdatacloud.nasa.gov/api"
-
-
-def get_token():
-    """Authenticate with NASA AppEEARS and return a bearer token."""
-
-    if not EARTHDATA_USER or not EARTHDATA_PASS:
-        raise ValueError("Earthdata username or password is missing.")
-
-    response = requests.post(
-        f"{API}/login",
-        auth=HTTPBasicAuth(EARTHDATA_USER, EARTHDATA_PASS),
-        data={"grant_type": "client_credentials"},
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
-        timeout=60
-    )
-
-    print("Login HTTP status:", response.status_code)
-
-    if not response.ok:
-        raise RuntimeError(
-            f"AppEEARS login failed.\n"
-            f"HTTP status: {response.status_code}\n"
-            f"Response: {response.text[:1000]}"
-        )
-
-    try:
-        result = response.json()
-    except requests.exceptions.JSONDecodeError:
-        raise RuntimeError(
-            f"NASA returned a non-JSON login response:\n"
-            f"{response.text[:1000]}"
-        )
-
-    if "token" not in result:
-        raise RuntimeError(f"Token missing from NASA response: {result}")
-
-    print("AppEEARS authentication successful.")
-    return result["token"]
+PROJECT = os.environ.get("EE_PROJECT")
+CHUNK_DAYS = 10
 
 
 def main():
+    if not PROJECT:
+        sys.exit("Set EE_PROJECT first (your Earth Engine / Cloud project ID).")
+    try:
+        ee.Initialize(project=PROJECT)
+    except Exception as e:
+        sys.exit(f"Earth Engine init failed: {e}\nRun ee.Authenticate() in a notebook cell first.")
 
     st = pd.read_csv(PROC / "stations.csv")
-
-    tok = get_token()
-
-    h = {"Authorization": f"Bearer {tok}"}
-
-    fmt = lambda d: pd.Timestamp(d).strftime("%m-%d-%Y")
-
-    task = {
-        "task_type": "point",
-        "task_name": "aeroguard_aod",
-        "params": {
-            "dates": [{
-                "startDate": fmt(START),
-                "endDate": fmt(END)
-            }],
-            "layers": [{
-                "product": "MCD19A2.061",
-                "layer": "Optical_Depth_055"
-            }],
-            "coordinates": [
-                {
-                    "id": str(r.station_id),
-                    "category": "station",
-                    "latitude": float(r.lat),
-                    "longitude": float(r.lon)
-                }
-                for r in st.itertuples()
-            ]
-        }
-    }
+    need = {"station_id", "lat", "lon"}
+    if not need.issubset(st.columns):
+        sys.exit(f"stations.csv needs columns {need}; it has {list(st.columns)}")
 
     out = RAW / "aod"
     out.mkdir(parents=True, exist_ok=True)
+    final = out / "aod_gee_results.csv"
+    part = out / "aod_gee_partial.csv"
+    if final.exists():
+        print("Already done:", final); return
 
-    if not list(out.glob("*results*.csv")):
+    done_until = None
+    rows = []
+    if part.exists():                                   # resume after a disconnect
+        prev = pd.read_csv(part)
+        rows = list(prev.itertuples(index=False, name=None))
+        done_until = pd.read_csv(out / "aod_progress.txt", header=None).iloc[0, 0]
+        print("Resuming after", done_until)
 
-        r = requests.post(
-            f"{API}/task",
-            json=task,
-            headers=h,
-            timeout=120
-        )
-        r.raise_for_status()
+    pts = ee.FeatureCollection([
+        ee.Feature(ee.Geometry.Point([float(r.lon), float(r.lat)]).buffer(2500),
+                   {"station_id": str(r.station_id)}) for r in st.itertuples()])
+    col = (ee.ImageCollection("MODIS/061/MCD19A2_GRANULES").select("Optical_Depth_055")
+           .filterBounds(pts.geometry()))
 
-        tid = r.json()["task_id"]
+    start, end = pd.Timestamp(START), pd.Timestamp(END)
+    for a in pd.date_range(start, end, freq=f"{CHUNK_DAYS}D"):
+        if done_until and a.strftime("%Y-%m-%d") <= done_until:
+            continue
+        b = min(a + pd.Timedelta(days=CHUNK_DAYS), end + pd.Timedelta(days=1))
 
-        print("AppEEARS task submitted:", tid)
+        def per_img(img):
+            return img.reduceRegions(pts, ee.Reducer.mean(), 1000).map(
+                lambda f: f.set("date", img.date().format("YYYY-MM-dd")))
 
-        while True:
+        fc = col.filterDate(a.strftime("%Y-%m-%d"), b.strftime("%Y-%m-%d")).map(per_img).flatten()
+        for f in fc.getInfo()["features"]:
+            p = f["properties"]
+            if p.get("mean") is not None:
+                rows.append((p["station_id"], p["date"], p["mean"] * 0.001))   # MODIS scale factor
+        pd.DataFrame(rows, columns=["station_id", "date", "aod_055"]).to_csv(part, index=False)
+        (out / "aod_progress.txt").write_text(a.strftime("%Y-%m-%d"))
+        print(a.date(), "->", len(rows), "rows")
 
-            response = requests.get(
-                f"{API}/task/{tid}",
-                headers=h,
-                timeout=60
-            )
-            response.raise_for_status()
-
-            s = response.json().get("status")
-
-            print("AppEEARS status:", s)
-
-            if s == "done":
-                break
-
-            if s in ("error", "failed"):
-                raise RuntimeError(
-                    f"AppEEARS task failed: {response.text}"
-                )
-
-            time.sleep(30)
-
-        bundle = requests.get(
-            f"{API}/bundle/{tid}",
-            headers=h,
-            timeout=60
-        )
-        bundle.raise_for_status()
-
-        for f in bundle.json()["files"]:
-
-            if (
-                f["file_name"].endswith(".csv")
-                and "results" in f["file_name"].lower()
-            ):
-
-                data = requests.get(
-                    f"{API}/bundle/{tid}/{f['file_id']}",
-                    headers=h,
-                    timeout=120
-                )
-                data.raise_for_status()
-
-                filename = f["file_name"].split("/")[-1]
-
-                (out / filename).write_bytes(data.content)
-
-                print("Saved:", filename)
-
-    else:
-        print("AOD results already exist. Skipping download.")
+    df = pd.DataFrame(rows, columns=["station_id", "date", "aod_055"])
+    df = df.groupby(["station_id", "date"], as_index=False).aod_055.mean()   # several granules per day
+    df.to_csv(final, index=False)
+    print("saved", final, df.shape)
 
 
 if __name__ == "__main__":
