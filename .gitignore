@@ -7,3 +7,8 @@ __pycache__/
 wandb/
 .pytest_cache/
 .DS_Store
+data/raw/
+data/processed/
+models/
+*.zip
+ee_key.json

@@ -13,8 +13,6 @@ for _p in (RAW, PROC, ART, PRED):
 # ---------- secrets (from environment) ----------
 OPENAQ_API_KEY = os.environ.get("OPENAQ_API_KEY", "")
 FIRMS_MAP_KEY = os.environ.get("FIRMS_MAP_KEY", "")
-EARTHDATA_USER = os.environ.get("EARTHDATA_USER", "")
-EARTHDATA_PASS = os.environ.get("EARTHDATA_PASS", "")
 CDSE_CLIENT_ID = os.environ.get("CDSE_CLIENT_ID", "")
 CDSE_CLIENT_SECRET = os.environ.get("CDSE_CLIENT_SECRET", "")
 
