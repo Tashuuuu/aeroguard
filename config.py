@@ -24,7 +24,7 @@ ERA5_AREA = [29.5, 76.3, 27.6, 78.2]                              # N, W, S, E (
 FIRE_BBOX = dict(west=72.5, south=26.5, east=80.0, north=33.5)    # incl. Punjab/Haryana stubble belt
 FIRE_RADII_KM = [50, 300]                                         # configurable fire-count radii
 IST = pd.Timedelta(hours=5, minutes=30)
-MIN_COVERAGE = 0.5                                                # keep stations with >=50% hourly PM2.5
+MIN_COVERAGE = 0.3                                                # keep stations with >=50% hourly PM2.5
 KNN = 6                                                           # graph neighbours per station
 
 # ---------- pollutants / quantiles ----------
