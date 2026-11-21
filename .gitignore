@@ -12,3 +12,9 @@ data/processed/
 models/
 *.zip
 ee_key.json
+data/
+*.parquet
+ee_key.json
+*.json
+__pycache__/
+.ipynb_checkpoints/
