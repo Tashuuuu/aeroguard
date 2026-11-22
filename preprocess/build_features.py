@@ -29,15 +29,13 @@ def load_era5(st, idx):
     return dict(u10=g("u10"), v10=g("v10"), t2m=t, rh=np.clip(100 * es(td) / es(t), 0, 100),
                 sp=g("sp") / 100.0, blh=g("blh"), tp=g("tp") * 1000.0)
 
-
 def load_aod(st):
+    # Google Earth Engine MAIAC file: columns station_id, date, aod_055 (already one value per station-day)
     f = next((RAW / "aod").glob("*results*.csv"))
     df = pd.read_csv(f)
-    cols = [c for c in df.columns if "Optical_Depth_055" in c and "QA" not in c and "Uncertainty" not in c]
-    df["aod"] = df[cols].where(lambda x: (x >= 0) & (x <= 5)).mean(axis=1)    # mean over Terra/Aqua passes
-    pv = df.pivot_table(index=pd.to_datetime(df["Date"]), columns=df["ID"].astype(str), values="aod")
+    df["aod"] = df["aod_055"].where(lambda x: (x >= 0) & (x <= 5))      # same validity range as before
+    pv = df.pivot_table(index=pd.to_datetime(df["date"]), columns=df["station_id"].astype(str), values="aod")
     return pd.DataFrame({s: pv[str(s)].reindex(DATES) if str(s) in pv else np.nan for s in st.station_id}, index=DATES)
-
 
 def load_s5p(st, var):
     out = pd.DataFrame(np.nan, index=DATES, columns=st.station_id)
