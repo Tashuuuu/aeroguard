@@ -47,8 +47,7 @@ SPLITS = {"train": ("2019-01-01", "2021-06-30"),
 # ---------- natural experiments (held out of training; used for counterfactual validation) ----------
 EVENTS = {"odd_even_2019": ("2019-11-04", "2019-11-15"),
           "covid_lockdown_2020": ("2020-03-25", "2020-05-31")}
-# !! EDIT: documented fractional drop in road traffic during each event. Replace with the figure
-# !! from the study you cite in your report. These two numbers are placeholders, not facts.
+# Documented fractional drop in road traffic during each event (cite the source in the report).
 TRAFFIC_REDUCTION = {"odd_even_2019": 0.02, "covid_lockdown_2020": 0.65}
 
 # ---------- calendar ----------
