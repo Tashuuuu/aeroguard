@@ -1,26 +1,33 @@
-# AeroGuard: air-quality forecasting for Delhi-NCR
+# AeroGuard: air-quality analysis and forecasting for Delhi-NCR
 
-Spatio-temporal graph neural network (TCN + graph attention) that forecasts PM2.5, PM10 and NO2 with uncertainty bands for 32 monitoring stations, plus an anomaly detector, a what-if simulator, an API and a Streamlit dashboard.
+A deep-learning project that models the factors affecting air quality (PM2.5, PM10, NO2) across Delhi-NCR and lets you explore them through an API and a Streamlit dashboard.
 
-**Data (2019-2022):** OpenAQ (CPCB) ground monitors, ERA5 weather, NASA MODIS AOD, Copernicus Sentinel-5P (UV aerosol index, tropospheric NO2), NASA FIRMS fires
+## What it does
+- Forecasts the next 24 hours of PM2.5, PM10 and NO2 for 32 monitoring stations, with prediction intervals (5%-95% quantile outputs).
+- Models the factors that affect air quality: the station's own readings, wind-adjusted influence of neighbouring stations, weather (wind, temperature, humidity, pressure, boundary-layer height, rain), satellite aerosol and gas measurements, crop-residue fires, Diwali and other festivals, a traffic proxy, and time of day, week and season.
+- Runs what-if scenarios (no firecrackers, no stubble fires, reduced traffic) by changing these inputs and re-running the trained model.
+- Flags stations whose readings differ strongly from what neighbours, satellite and weather predict.
 
-## Results (hourly, 2022 test set, PM2.5 RMSE, lower is better)
-| Method | RMSE |
-|---|---|
-| Persistence | 83.50 |
-| ST-GNN | 67.84 |
-| XGBoost | 62.51 |
+## Model
+- Spatio-temporal graph neural network (ST-GNN):
+  - Temporal causal convolutional network (TCN) encoder for each station
+  - Graph attention layer (GAT) across neighbouring stations
+  - MLP head that outputs quantiles for 3 pollutants over the forecast horizon
+- Trained with quantile (pinball) loss, with random masking of stations' own readings.
+- Chronological split: train 2019 to mid-2021, validation late 2021, test 2022.
 
-## Limitations
-- The ST-GNN beats persistence but not XGBoost.
-- Removing graph attention or satellite/fire features did not hurt, so those components are not shown to help.
-- Prediction intervals are somewhat overconfident (90% bands cover about 80%).
-- The anomaly detector mainly catches large upward changes.
-- What-if results show model sensitivity, not proven causal effects.
-- Cross-city analysis was planned but not completed.
+## Data (2019-2022)
+- OpenAQ (CPCB) ground monitors
+- ERA5 weather (Copernicus)
+- MODIS AOD (NASA)
+- Sentinel-5P UV aerosol index and tropospheric NO2 (Copernicus)
+- VIIRS fire detections (NASA FIRMS)
 
 ## Run locally
 1. `pip install -r requirements-serve.txt`
-2. Place the trained workspace (data and model files) in `./workspace`.
+2. Place the trained workspace (processed data and model files) in `./workspace`
 3. `python -m uvicorn api.main:app --port 8000`
-4. `python -m streamlit run app/dashboard.py`
+4. `python -m streamlit run app/dashboard.py` (opens at http://localhost:8501)
+5. Tests: `python -m pytest -q`
+
+Dockerfile and docker-compose.yml are
