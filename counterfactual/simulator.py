@@ -71,7 +71,7 @@ def validate_event(rt, ev):
         sim.append(float(100 * (b - c).mean() / b.mean()))
     doc = TRAFFIC_REDUCTION[ev]
     b, c = effect(rt, o, SCENARIOS["reduced_traffic"], doc)
-    implied = float(np.interp(observed, sim, grid)) if np.all(np.diff(sim) > 0) else None
+    implied = float(np.interp(observed, sim, grid)) if (np.all(np.diff(sim) > 0) and sim[0] <= observed <= sim[-1]) else None
     return dict(event=ev, n_origins=int(len(o)), documented_traffic_reduction=doc,
                 observed_pm25_drop_pct=observed, simulated_drop_pct_at_documented=float(100 * (b - c).mean() / b.mean()),
                 implied_traffic_reduction_to_match_observed=implied,
