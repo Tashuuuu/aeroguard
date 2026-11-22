@@ -80,4 +80,5 @@ HP = dict(hidden=64, heads=4, dropout=0.1, kernel=3, lr=1e-3, wd=1e-4, epochs=40
 
 # ---------- anomaly layer ----------
 ANOM = dict(roll={"hourly": 12, "daily": 3}, fpr=0.01, seg={"hourly": 48, "daily": 7},
-            per_type=8, kinds=[("scale", 0.6), ("scale", 1.5), ("offset", -40.0), ("offset", 40.0)])
+                        per_type=8, kinds=[("scale", 0.3), ("scale", 0.6), ("scale", 1.5), ("scale", 2.0),
+                               ("offset", -40.0), ("offset", 40.0), ("offset", -100.0), ("offset", 100.0)])

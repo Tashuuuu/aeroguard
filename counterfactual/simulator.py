@@ -81,6 +81,7 @@ def validate_event(rt, ev):
 def main(mode):
     rt = Runtime(mode)
     o = origins_between(rt, *SPLITS["test"])[::MODES[mode]["eval_stride"]]
+    o = o[o + max(rt.cfg["leads"]) < len(rt.bundle.times)]
     li = [l - 1 for l in rt.cfg["leads"]]
     bau = driver_only(rt, o)[..., MID]
     act = np.stack([rt.bundle.X[o + l, :, 0] for l in rt.cfg["leads"]], 1)
