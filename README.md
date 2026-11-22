@@ -2,7 +2,7 @@
 
 Spatio-temporal graph neural network (TCN + graph attention) that forecasts PM2.5, PM10 and NO2 with uncertainty bands for 32 monitoring stations, plus an anomaly detector, a what-if simulator, an API and a Streamlit dashboard.
 
-**Data (2019-2022):** OpenAQ ground monitors, ERA5 weather, NASA MODIS AOD, NASA FIRMS fires.
+**Data (2019-2022):** OpenAQ (CPCB) ground monitors, ERA5 weather, NASA MODIS AOD, Copernicus Sentinel-5P (UV aerosol index, tropospheric NO2), NASA FIRMS fires
 
 ## Results (hourly, 2022 test set, PM2.5 RMSE, lower is better)
 | Method | RMSE |
