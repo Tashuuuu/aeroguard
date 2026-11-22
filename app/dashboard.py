@@ -13,8 +13,7 @@ def get(path, **params):
     r.raise_for_status()
     return r.json()
 
-
-tabs = st.tabs(["Forecast", "Anomaly flags", "What-if scenarios", "Cross-city", "Benchmarks"])
+tabs = st.tabs(["Forecast", "Anomaly flags", "What-if scenarios", "Benchmarks"])
 stations = pd.DataFrame(get("/stations"))
 
 with tabs[0]:
@@ -57,9 +56,4 @@ with tabs[2]:
         st.bar_chart(pd.Series(r["per_station"]))
 
 with tabs[3]:
-    c = get("/cities")
-    st.dataframe(pd.DataFrame(c["table"]))
-    st.json(c["stats"])
-
-with tabs[4]:
     st.dataframe(pd.DataFrame(get("/results")))
